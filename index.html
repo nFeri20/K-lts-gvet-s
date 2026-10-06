@@ -127,7 +127,7 @@ main#app{padding-bottom:100px}
 <label style="margin-top:10px">Közös költségek megosztása<select id="spl"><option value="equal">Fele-fele</option><option value="income">A bevételek arányában</option></select></label>
 <div class="foot" style="margin-top:14px"><button class="btn2" id="exp">Exportálás (CSV)</button><button class="btn2" id="out">Kilépés</button></div></details>
 <button id="fab" aria-label="Új kiadás">+</button>
-<nav id="nav"><button data-t="ov">Áttekintés</button><button data-t="ex">Kiadások</button><button data-t="in">Bevételek</button><button data-t="bd">Keretek</button></nav>
+<nav id="nav"><button data-t="ov">Áttekintés</button><button data-t="in">Bevételek</button><button data-t="ex">Kiadások</button><button data-t="bd">Keretek</button></nav>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -294,8 +294,8 @@ function render(){
   <div class="split"><i style="width:${wa}%;background:var(--a)"></i><i style="width:${100-wa}%;background:var(--b)"></i></div>
   <div class="legend"><span><span class="dot" style="background:var(--a)"></span>${esc(n0)} a közösből: ${ft(pa)}</span><span><span class="dot" style="background:var(--b)"></span>${esc(n1)}: ${ft(pb)}</span></div>
   <div class="tiles">
-    <div class="tile"><span>Kiadás összesen</span><b>${ft(sum(L))}</b></div>
     <div class="tile"><span>Bevétel</span><b>${inc>0?ft(inc):'–'}</b></div>
+    <div class="tile"><span>Kiadás összesen</span><b>${ft(sum(L))}</b></div>
     <div class="tile"><span>Maradék</span><b style="color:var(${rem<0?'--bad':'--ok'})">${inc>0?ft(rem):'–'}</b></div>
     <div class="tile"><span>Közös költség</span><b>${ft(T)}</b></div>
     <div class="tile"><span>${esc(n0)} költése</span><b>${ft(own(0))}</b></div>
