@@ -84,8 +84,9 @@ main#app{padding-bottom:100px}
 <header><h1>Közös költségvetés</h1><input type="month" id="m" aria-label="Hónap" style="width:auto"></header>
 <p class="meta" id="sync" style="margin:0"></p>
 <section class="hero" id="hero" data-tab="ov"></section>
+<section class="card" data-tab="ov"><h2>Kinek mennyi marad</h2><div id="pp"></div></section>
 <section class="card" data-tab="ov"><h2>Elmúlt 6 hónap</h2><div id="chart"></div></section>
-<section class="card" data-tab="in" hidden><h2>Bevételek</h2><div id="inl"></div>
+<section class="card" data-tab="in" hidden><h2>Bevételek</h2><div id="isum"></div><div id="inl"></div>
 <details id="sdet" style="margin-top:12px"><summary>Új bevétel felvétele</summary>
 <div class="grid" style="margin-top:12px">
 <label>Forrás<input id="sn" type="text" placeholder="pl. Fizetés, Bónusz"></label>
@@ -383,6 +384,15 @@ function render(){
     ${daily}
   </div>
   ${inc>0?`<div class="bar ${rem<0?'over':''}" style="margin-top:10px"><i style="width:${Math.min(100,sum(LS)/inc*100)}%"></i></div>`:''}`;
+  $('isum').innerHTML=`<div class="tiles" style="margin:0 0 10px"><div class="tile"><span>${esc(n0)} bevétele</span><b>${ft(i0)}</b></div><div class="tile"><span>${esc(n1)} bevétele</span><b>${ft(i1)}</b></div><div class="tile" style="grid-column:1/-1"><span>Együtt ebben a hónapban</span><b>${ft(inc)}</b></div></div>`;
+  $('pp').innerHTML=[0,1].map(i=>{
+    const nm=S.names[i],bi=i?i1:i0,sp=own(i),left=bi-sp;
+    return `<div class="row"><div class="rt"><b>${esc(nm)}</b><span class="meta">${bi>0?Math.round(sp/bi*100)+'% elköltve':'nincs bevétel megadva'}</span></div>
+    <div class="rt"><span class="meta">Bevétel</span><span>${ft(bi)}</span></div>
+    <div class="rt"><span class="meta">Költés (saját és közös rész)</span><span>${ft(sp)}</span></div>
+    <div class="rt"><span class="meta">Maradék</span><b style="color:var(${left<0?'--bad':'--ok'})">${ft(left)}</b></div>
+    ${month===curM&&bi>0?`<div class="rt"><span class="meta">Naponta költhető</span><span>${ft(left>0?left/dl:0)}</span></div>`:''}
+    ${bi>0?`<div class="bar ${left<0?'over':''}" style="margin-top:4px"><i style="width:${Math.min(100,sp/bi*100)}%"></i></div>`:''}</div>`}).join('');
   if($('rv'))$('rv').onclick=()=>{
     const x={id:Date.now(),m:month,date:today,from:bal>0?1:0,to:bal>0?0:1,amt:Math.round(d)};
     S.st=[...S.st,x];
