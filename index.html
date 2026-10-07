@@ -51,6 +51,9 @@ input[type=text],input[type=number],input[type=date],input[type=month],input[typ
 summary{cursor:pointer;font-weight:800}
 details .grid{margin-top:12px}
 textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font:inherit;color:var(--ink);resize:vertical}
+.seg{display:flex;gap:4px;margin:0 0 12px}
+.seg button{flex:1;padding:8px;border:1px solid var(--line);background:none;border-radius:10px;font-size:.85rem;color:var(--ink);cursor:pointer}
+.seg button.on{background:var(--bg);border-color:var(--ok);color:var(--ok);font-weight:600}
 .foot{display:flex;gap:10px;flex-wrap:wrap}
 .chart{display:flex;gap:6px;margin-top:6px}
 .col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
@@ -90,7 +93,11 @@ main#app{padding-bottom:100px}
 <header><h1>Közös költségvetés</h1><input type="month" id="m" aria-label="Hónap" style="width:auto"></header>
 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><p class="meta" id="sync" style="margin:0"></p><button class="btn2" id="lk" style="padding:6px 10px;font-size:.82rem;white-space:nowrap"></button></div>
 <section class="hero" id="hero" data-tab="ov"></section>
+<section class="card" id="trc" data-tab="ov"><h2>Jelzések és trendek</h2><div id="trd"></div></section>
 <section class="card" data-tab="ov"><h2>Kinek mennyi marad</h2><div id="pp"></div></section>
+<section class="card" id="brc" data-tab="ov"><h2>Terhelés a bevételhez képest</h2><div id="brl"></div></section>
+<section class="card" id="upc" data-tab="ov"><h2>Közelgő számlák, 30 nap</h2><div id="upl"></div></section>
+<section class="card" id="fxc" data-tab="ov"><h2>Pénznemenkénti összesítő</h2><div id="fxl"></div></section>
 <section class="card" data-tab="ov"><h2>Hónapjegyzet</h2><textarea id="mn" rows="3" placeholder="pl. októberben volt a fogorvos, ezért magasabb az egészségügy"></textarea><p class="meta" style="margin:6px 0 0">Mindketten látjátok és szerkeszthetitek.</p></section>
 <section class="card" data-tab="ov"><h2>Elmúlt 6 hónap</h2><div id="chart"></div></section>
 <section class="card" data-tab="in" hidden><h2>Bevételek</h2><div id="isum"></div><div id="inl"></div>
@@ -121,6 +128,7 @@ main#app{padding-bottom:100px}
 <label class="full">Hány hónapra szól a költség?<select id="ms"><option value="1">1 hónap (nem osztjuk el)</option><option value="2">2 hónap</option><option value="3">3 hónap (negyedév)</option><option value="6">6 hónap (félév)</option><option value="12">12 hónap (egy év)</option></select></label>
 </div>
 <button class="btn" id="add">Kiadás mentése</button><button class="btn2" id="cx" style="width:100%;margin-top:8px">Mégse</button><p class="err" id="err" role="alert"></p></section>
+<section class="card" data-tab="bd" hidden><h2>Kategóriák aránya</h2><div id="ctl"></div></section>
 <section class="card" data-tab="bd" hidden><h2>Havi keretek</h2><p class="meta" id="bn" style="margin:-4px 0 6px"></p><div id="bud"></div></section>
 <section class="card" data-tab="ex" hidden><h2>Kiadások</h2><div id="list"></div></section>
 <section class="card" data-tab="ex" hidden><h2>Ismétlődő kiadások</h2><div id="rcl"></div>
@@ -171,13 +179,14 @@ const recOn=(r,m)=>(!r.from_m||m>=r.from_m)&&(!r.to_m||m<=r.to_m);
 const monthEx=m=>[...S.ex.filter(e=>e.date.startsWith(m)),...S.rc.filter(r=>recOn(r,m)).map(r=>({id:'r'+r.id,date:m+'-'+String(Math.min(r.day||1,28)).padStart(2,'0'),desc:r.descr,amt:rcAmt(r,m),cat:r.cat,payer:r.payer,shared:r.shared,cur:r.cur||'HUF',orig:r.amt,rate:rateAt(r.cur,r.rfix,r.rate,m+'-'+String(Math.min(r.day||1,28)).padStart(2,'0')),rec:true}))];
 const prevM=(m,k)=>{const [y,mo]=m.split('-').map(Number);const d=new Date(y,mo-1-k,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
 const sumA=a=>a.reduce((t,e)=>t+e.amt,0);
+let FSEL=null;
 const isLocked=m=>!!(S.mo[m]&&S.mo[m].locked);
 function saveMo(m){const x=S.mo[m]||{note:'',locked:false};SB.from('months').upsert({m,note:x.note,locked:x.locked}).then(fail)}
 const mIdx=m=>{const [y,mo]=m.split('-').map(Number);return y*12+mo};
 const spendEx=m=>{
   const out=[];
-  S.ex.forEach(e=>{const sp=e.span||1,k=mIdx(m)-mIdx(e.date.slice(0,7));if(k>=0&&k<sp)out.push(sp>1?{...e,amt:e.amt/sp,part:true}:e)});
-  S.rc.filter(r=>recOn(r,m)).forEach(r=>out.push({amt:rcAmt(r,m),cat:r.cat,payer:r.payer,shared:r.shared}));
+  S.ex.forEach(e=>{const sp=e.span||1,k=mIdx(m)-mIdx(e.date.slice(0,7));if(k>=0&&k<sp)out.push(sp>1?{...e,amt:e.amt/sp,orig:e.orig/sp,part:true}:e)});
+  S.rc.filter(r=>recOn(r,m)).forEach(r=>out.push({amt:rcAmt(r,m),cur:r.cur||'HUF',orig:r.amt,cat:r.cat,payer:r.payer,shared:r.shared}));
   return out;
 };
 const balOf=m=>{
@@ -427,6 +436,67 @@ function render(){
     <div class="rt"><span class="meta">Maradék</span><b style="color:var(${left<0?'--bad':'--ok'})">${ft(left)}</b></div>
     ${month===curM&&bi>0?`<div class="rt"><span class="meta">Naponta költhető</span><span>${ft(left>0?left/dl:0)}</span></div>`:''}
     ${bi>0?`<div class="bar ${left<0?'over':''}" style="margin-top:4px"><i style="width:${Math.min(100,sp/bi*100)}%"></i></div>`:''}</div>`}).join('');
+  // 1. közelgő számlák
+  const t0=new Date(today+'T00:00:00'),t1=new Date(t0);t1.setDate(t1.getDate()+30);
+  const iso=x=>x.toLocaleDateString('sv');
+  const UP=[];
+  [0,1].forEach(k=>{
+    const base=new Date(t0.getFullYear(),t0.getMonth()+k,1),mm=iso(base).slice(0,7);
+    S.rc.filter(r=>recOn(r,mm)).forEach(r=>{
+      const dd=new Date(base.getFullYear(),base.getMonth(),Math.min(r.day||1,28));
+      if(dd>=t0&&dd<=t1)UP.push({d:iso(dd),name:r.descr,note:'havi',amt:rcAmt(r,mm)});
+    });
+  });
+  S.ex.filter(e=>(e.span||1)>1).forEach(e=>{
+    const [y,mo,da]=e.date.split('-').map(Number),dd=new Date(y,mo-1+e.span,da);
+    if(dd>=t0&&dd<=t1)UP.push({d:iso(dd),name:e.desc,note:e.span+' havonta, becsült',amt:e.amt});
+  });
+  UP.sort((a,b)=>a.d<b.d?-1:1);
+  $('upc').style.display=UP.length?'':'none';
+  $('upl').innerHTML=UP.map(u=>`<div class="row rt"><span>${u.d.slice(5).replace('-','. ')}.<br><span class="meta">${esc(u.name)}, ${u.note}</span></span><b>${ft(u.amt)}</b></div>`).join('')+`<div class="rt" style="padding-top:8px;border-top:1px solid var(--line)"><b>Összesen</b><b>${ft(sum(UP))}</b></div>`;
+  // 2. pénznemenkénti összesítő
+  const byC={};
+  LS.forEach(e=>{const c=e.cur||'HUF';(byC[c]=byC[c]||{o:0,h:0});byC[c].o+=e.orig==null?e.amt:e.orig;byC[c].h+=e.amt});
+  const cks=Object.keys(byC).sort((a,b)=>byC[b].h-byC[a].h);
+  $('fxc').style.display=cks.length>1?'':'none';
+  $('fxl').innerHTML=cks.map(c=>`<div class="row rt"><span>${c}${c!=='HUF'?`<br><span class="meta">${Math.round(byC[c].o).toLocaleString('hu-HU')} ${c}</span>`:''}</span><b>${ft(byC[c].h)}</b></div>`).join('')+`<div class="rt" style="padding-top:8px;border-top:1px solid var(--line)"><b>Összesen forintban</b><b>${ft(sum(LS))}</b></div>`;
+  // 3. kategóriák aránya
+  const CC={'Lakás':'#7F77DD','Étel':'#1D9E75','Közlekedés':'#D85A30','Szórakozás':'#BA7517','Egyéb':'#888780'};
+  const tot=sum(LS),cs=CATS.map(c=>({c,v:sum(LS.filter(e=>e.cat==c))}));
+  $('ctl').innerHTML=tot>0?`<div class="bar" style="display:flex;margin-bottom:8px">${cs.filter(x=>x.v>0).map(x=>`<i style="width:${x.v/tot*100}%;background:${CC[x.c]||'#888780'}"></i>`).join('')}</div>`+cs.map(x=>`<div class="row rt"><span><span class="dot" style="background:${CC[x.c]||'#888780'}"></span>${x.c}</span><span>${Math.round(x.v/tot*100)}% <span class="meta">${ft(x.v)}</span></span></div>`).join(''):'<p class="empty">Ebben a hónapban még nincs kiadás.</p>';
+  // 4. terhelés a bevételhez képest
+  const fm=FSEL||S.split,both=i0>0&&i1>0,rr=fm==='income'&&both?i0/(i0+i1):.5;
+  const bc=i=>sum(LS.filter(e=>!e.shared&&e.payer==i))+TS*(i?1-rr:rr);
+  const bp=[bc(0)/(i0||1)*100,bc(1)/(i1||1)*100],dif=Math.abs(bp[0]-bp[1]),hi=bp[0]>bp[1]?0:1;
+  $('brc').style.display=both?'':'none';
+  $('brl').innerHTML=`<div class="seg"><button type="button" data-fm="equal" class="${fm==='equal'?'on':''}">Fele-fele megosztás</button><button type="button" data-fm="income" class="${fm==='income'?'on':''}">Bevételek arányában</button></div>`
+    +[0,1].map(i=>`<div class="rt" style="margin-bottom:4px"><b>${esc(S.names[i])}</b><span>${Math.round(bp[i])}% <span class="meta">${ft(bc(i))} / ${ft(i?i1:i0)}</span></span></div><div class="bar" style="margin-bottom:12px"><i style="width:${Math.min(100,bp[i])}%;background:${i?'var(--b)':'var(--a)'}"></i></div>`).join('')
+    +`<div class="meta" style="padding:8px 12px;border-radius:10px;background:var(--bg)">${dif<3?'Közel egyenlő terhelés: a bevételük közel azonos részét viszi el a költség.':esc(S.names[hi])+' bevételének nagyobb részét viszi el a költség: '+Math.round(dif)+' százalékpont eltérés.'}</div>`;
+  document.querySelectorAll('[data-fm]').forEach(b=>b.onclick=()=>{FSEL=b.dataset.fm;render()});
+  // 5. jelzések és trendek
+  const lines=[],isCur=month===curM,dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const RA={'Lakás':'Lakásra','Étel':'Ételre','Közlekedés':'Közlekedésre','Szórakozás':'Szórakozásra','Egyéb':'Egyébre'};
+  if(isCur)CATS.forEach(c=>{
+    const l=+S.bud[c]||0;if(!l)return;
+    const s=sum(LS.filter(e=>e.cat==c)),p=s/l*100;
+    if(s>l)lines.push({i:'alert',w:1e6,t:`${c}: a keretet túllépitek (${Math.round(p)}%), és a hónapból még ${dl} nap van hátra.`});
+    else if(p>=85)lines.push({i:'alert',w:1e5,t:`${c}: a keret ${Math.round(p)}%-on van, és a hónapból még ${dl} nap van hátra.`});
+  });
+  const prev=[1,2,3].map(k=>spendEx(prevM(month,k))).filter(x=>sum(x)>0);
+  if(prev.length>=2){
+    CATS.forEach(c=>{
+      const av=prev.reduce((a,x)=>a+sum(x.filter(e=>e.cat==c)),0)/prev.length,cu=sum(LS.filter(e=>e.cat==c));
+      if(av<10000)return;
+      const ch=(cu-av)/av*100;
+      if(isCur){
+        if(ch>=15)lines.push({i:'up',w:Math.min(ch,1e4),t:`${RA[c]} már most ${Math.round(ch)}%-kal többet költöttetek, mint az elmúlt ${prev.length} hónap havi átlaga.`});
+      }else if(Math.abs(ch)>=15)lines.push({i:ch>0?'up':'down',w:Math.abs(ch),t:`${RA[c]} ${Math.round(Math.abs(ch))}%-kal ${ch>0?'többet':'kevesebbet'} költöttetek, mint az elmúlt ${prev.length} hónap átlaga.`});
+    });
+  }
+  const sym={alert:['!','--bad'],up:['▲','--bad'],down:['▼','--ok']};
+  lines.sort((a,b)=>b.w-a.w);
+  $('trc').style.display=lines.length?'':'none';
+  $('trd').innerHTML=lines.slice(0,4).map(l=>`<div class="row" style="display:flex;gap:10px;align-items:flex-start"><b style="color:var(${sym[l.i][1]});width:16px;text-align:center;flex:none">${sym[l.i][0]}</b><span>${l.t}</span></div>`).join('');
   $('lk').textContent=isLocked(month)?'Hónap feloldása':'Hónap lezárása';
   if(document.activeElement!==$('mn'))$('mn').value=(S.mo[month]||{}).note||'';
   if($('rv'))$('rv').onclick=()=>{
