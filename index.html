@@ -477,10 +477,12 @@ function render(){
   ${inc>0?`<div class="bar ${rem<0?'over':''}" style="margin-top:10px"><i style="width:${Math.min(100,sum(LS)/inc*100)}%"></i></div>`:''}`;
   $('isum').innerHTML=`<div class="tiles" style="margin:0 0 10px"><div class="tile"><span>${esc(n0)} bevétele</span><b>${ft(i0)}</b></div><div class="tile"><span>${esc(n1)} bevétele</span><b>${ft(i1)}</b></div><div class="tile" style="grid-column:1/-1"><span>Együtt ebben a hónapban</span><b>${ft(inc)}</b></div></div>`;
   $('pp').innerHTML=[0,1].map(i=>{
-    const nm=S.names[i],bi=i?i1:i0,sp=own(i),left=bi-sp;
+    const nm=S.names[i],bi=i?i1:i0,sp=own(i),left=bi-sp,ind=sum(LS.filter(e=>!e.shared&&e.payer==i)),shr=sp-ind;
     return `<div class="row"><div class="rt"><b>${esc(nm)}</b><span class="meta">${bi>0?Math.round(sp/bi*100)+'% elköltve':'nincs bevétel megadva'}</span></div>
     <div class="rt"><span class="meta">Bevétel</span><span>${ft(bi)}</span></div>
-    <div class="rt"><span class="meta">Költés (saját és közös rész)</span><span>${ft(sp)}</span></div>
+    <div class="rt"><span class="meta">Saját (egyéni) költés</span><span>${ft(ind)}</span></div>
+    <div class="rt"><span class="meta">Közös költésből rá eső rész</span><span>${ft(shr)}</span></div>
+    <div class="rt"><span class="meta">Összes költés</span><b>${ft(sp)}</b></div>
     <div class="rt"><span class="meta">Maradék</span><b style="color:var(${left<0?'--bad':'--ok'})">${ft(left)}</b></div>
     ${month===curM&&bi>0?`<div class="rt"><span class="meta">Naponta költhető</span><span>${ft(left>0?left/dl:0)}</span></div>`:''}
     ${bi>0?`<div class="bar ${left<0?'over':''}" style="margin-top:4px"><i style="width:${Math.min(100,sp/bi*100)}%"></i></div>`:''}</div>`}).join('');
