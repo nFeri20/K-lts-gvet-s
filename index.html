@@ -44,6 +44,13 @@ input[type=text],input[type=number],input[type=date],input[type=month],input[typ
 .bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--ok)}
 .bar.over i{background:var(--bad)}
+.pl{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;padding:5px 0}
+.pl.sub{font-size:.85rem;color:var(--mute);padding:3px 0 3px 18px;position:relative}
+.pl.sub::before{content:"";position:absolute;left:5px;top:0;height:50%;width:9px;border-left:1.5px solid var(--line);border-bottom:1.5px solid var(--line);border-bottom-left-radius:6px}
+.pl.sub:not(.last)::after{content:"";position:absolute;left:5px;top:50%;bottom:-8px;border-left:1.5px solid var(--line)}
+.pl.sep{border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+.bar2{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--line);margin-top:10px}
+.bar2 i{display:block;height:100%}
 .lim{width:110px!important;padding:6px 8px!important;text-align:right}
 .meta{color:var(--mute);font-size:.82rem}
 .del{border:0;background:none;color:var(--mute);font-size:1.3rem;cursor:pointer;padding:4px 8px}
@@ -478,14 +485,15 @@ function render(){
   $('isum').innerHTML=`<div class="tiles" style="margin:0 0 10px"><div class="tile"><span>${esc(n0)} bevétele</span><b>${ft(i0)}</b></div><div class="tile"><span>${esc(n1)} bevétele</span><b>${ft(i1)}</b></div><div class="tile" style="grid-column:1/-1"><span>Együtt ebben a hónapban</span><b>${ft(inc)}</b></div></div>`;
   $('pp').innerHTML=[0,1].map(i=>{
     const nm=S.names[i],bi=i?i1:i0,sp=own(i),left=bi-sp,ind=sum(LS.filter(e=>!e.shared&&e.payer==i)),shr=sp-ind;
+    const spp=Math.min(100,bi>0?sp/bi*100:0);
     return `<div class="row"><div class="rt"><b>${esc(nm)}</b><span class="meta">${bi>0?Math.round(sp/bi*100)+'% elköltve':'nincs bevétel megadva'}</span></div>
-    <div class="rt"><span class="meta">Bevétel</span><span>${ft(bi)}</span></div>
-    <div class="rt"><span class="meta">Saját (egyéni) költés</span><span>${ft(ind)}</span></div>
-    <div class="rt"><span class="meta">Közös költésből rá eső rész</span><span>${ft(shr)}</span></div>
-    <div class="rt"><span class="meta">Összes költés</span><b>${ft(sp)}</b></div>
-    <div class="rt"><span class="meta">Maradék</span><b style="color:var(${left<0?'--bad':'--ok'})">${ft(left)}</b></div>
-    ${month===curM&&bi>0?`<div class="rt"><span class="meta">Naponta költhető</span><span>${ft(left>0?left/dl:0)}</span></div>`:''}
-    ${bi>0?`<div class="bar ${left<0?'over':''}" style="margin-top:4px"><i style="width:${Math.min(100,sp/bi*100)}%"></i></div>`:''}</div>`}).join('');
+    <div class="pl"><span>Bevétel</span><b style="color:var(--ok)">${ft(bi)}</b></div>
+    <div class="pl"><span>Kiadás</span><b style="color:var(--bad)">${ft(sp)}</b></div>
+    <div class="pl sub"><span>Saját költés</span><span>${ft(ind)}</span></div>
+    <div class="pl sub last"><span>Közös költésből rá eső rész</span><span>${ft(shr)}</span></div>
+    <div class="pl sep"><span>Maradék</span><b style="font-size:1.25rem;color:var(${left<0?'--bad':'--ok'})">${ft(left)}</b></div>
+    ${month===curM&&bi>0?`<div class="pl" style="font-size:.85rem;color:var(--mute)"><span>Naponta költhető</span><span>${ft(left>0?left/dl:0)}</span></div>`:''}
+    ${bi>0?`<div class="bar2"><i style="width:${left<0?100:spp}%;background:var(--bad)"></i><i style="width:${left<0?0:100-spp}%;background:var(--ok)"></i></div>`:''}</div>`}).join('');
   // 1. közelgő számlák
   const t0=new Date(today+'T00:00:00'),t1=new Date(t0);t1.setDate(t1.getDate()+30);
   const iso=x=>x.toLocaleDateString('sv');
